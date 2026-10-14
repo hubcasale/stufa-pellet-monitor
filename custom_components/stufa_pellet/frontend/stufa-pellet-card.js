@@ -447,7 +447,7 @@ var ge=Object.defineProperty;var _e=Object.getOwnPropertyDescriptor;var m=(i,t,e
       .stove { flex: none; width: 52%; }
       .side { width: 100%; }
     }
-  `}};m([S({attribute:!1})],O.prototype,"hass",2),m([b()],O.prototype,"_config",2),m([b()],O.prototype,"_info",2),m([b()],O.prototype,"_error",2),m([b()],O.prototype,"_segs",2),m([b()],O.prototype,"_now",2);customElements.get("stufa-pellet-card")||customElements.define("stufa-pellet-card",O);window.customCards=window.customCards||[];window.customCards.push({type:"stufa-pellet-card",name:"Stufa a pellet",description:"Stato della stufa, potenza con le soglie, cronologia, grafici e preferenze."});console.info("%c STUFA-PELLET-MONITOR %c v0.1.0 ","color: white; background: #8b2a22; font-weight: 700;","color: #8b2a22; background: white; font-weight: 700;");export{O as StufaPelletCard};
+  `}};m([S({attribute:!1})],O.prototype,"hass",2),m([b()],O.prototype,"_config",2),m([b()],O.prototype,"_info",2),m([b()],O.prototype,"_error",2),m([b()],O.prototype,"_segs",2),m([b()],O.prototype,"_now",2);customElements.get("stufa-pellet-card")||customElements.define("stufa-pellet-card",O);window.customCards=window.customCards||[];window.customCards.push({type:"stufa-pellet-card",name:"Stufa a pellet",description:"Stato della stufa, potenza con le soglie, cronologia, grafici e preferenze."});console.info("%c STUFA-PELLET-MONITOR %c v0.1.1 ","color: white; background: #8b2a22; font-weight: 700;","color: #8b2a22; background: white; font-weight: 700;");export{O as StufaPelletCard};
 /*! Bundled license information:
 
 @lit/reactive-element/css-tag.js:

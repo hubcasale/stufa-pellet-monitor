@@ -41,9 +41,10 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Registra la scheda (servita dall'integrazione, nessuna risorsa da aggiungere) e i comandi per le preferenze."""
     hass.data.setdefault(DOMAIN, {})
     card_path = Path(__file__).parent / CARD_FILE
-    if card_path.is_file():
+    if await hass.async_add_executor_job(card_path.is_file):
+        version = await hass.async_add_executor_job(_version)
         await hass.http.async_register_static_paths([StaticPathConfig(CARD_URL, str(card_path), cache_headers=False)])
-        frontend.add_extra_js_url(hass, f"{CARD_URL}?v={_version()}")
+        frontend.add_extra_js_url(hass, f"{CARD_URL}?v={version}")
     else:
         _LOGGER.warning("Scheda non trovata in %s: costruiscila con npm run build", card_path)
     websocket_api.async_register_command(hass, ws_info)

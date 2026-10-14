@@ -290,4 +290,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c STUFA-PELLET-MONITOR %c v0.1.0 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
+console.info("%c STUFA-PELLET-MONITOR %c v0.1.1 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
