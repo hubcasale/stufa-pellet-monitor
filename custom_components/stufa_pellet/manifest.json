@@ -1,10 +1,19 @@
 {
   "domain": "stufa_pellet",
   "name": "Stufa a pellet",
-  "codeowners": ["@hubcasale"],
+  "after_dependencies": [
+    "recorder",
+    "history"
+  ],
+  "codeowners": [
+    "@hubcasale"
+  ],
   "config_flow": true,
-  "dependencies": ["http", "frontend", "websocket_api"],
-  "after_dependencies": ["recorder", "history"],
+  "dependencies": [
+    "http",
+    "frontend",
+    "websocket_api"
+  ],
   "documentation": "https://github.com/hubcasale/stufa-pellet-monitor",
   "integration_type": "service",
   "iot_class": "calculated",

@@ -316,7 +316,7 @@ var ge=Object.defineProperty;var _e=Object.getOwnPropertyDescriptor;var m=(i,t,e
 
             ${e.length?f`<div class="err">${e[0]}</div>`:u}
             ${this._error?f`<div class="err">${this._error}</div>`:u}
-            ${this._msg?f`<div class="ok">${this._msg}</div>`:u}
+            ${this._msg?f`<div class="okbox">${this._msg}</div>`:u}
           </div>
           <div class="foot">
             <button class="btn" @click=${()=>this._close()}>Annulla</button>
