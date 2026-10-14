@@ -7,6 +7,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import Event, EventStateChangedData, HomeAssistant, callback
+from homeassistant.exceptions import HomeAssistantError
 from homeassistant.helpers.dispatcher import async_dispatcher_send
 from homeassistant.helpers.event import async_track_state_change_event, async_track_time_interval
 from homeassistant.helpers.storage import Store
@@ -134,9 +135,7 @@ class StufaController:
                 since_on = (dt_util.utcnow() - sw_state.last_changed).total_seconds()
             action = decide_switch_action(power, state, switch_on, since_on, blocked, s)
             if action and self.switch_entity:
-                self.hass.async_create_task(
-                    self.hass.services.async_call("homeassistant", action, {"entity_id": self.switch_entity}, blocking=False)
-                )
+                self._call("homeassistant", action, {"entity_id": self.switch_entity})
                 if action == "turn_on":
                     self._notify("event", "Stufa a pellet", f"Rilevata accensione, interruttore acceso (potenza {power:.0f} W).")
                 else:
@@ -180,17 +179,23 @@ class StufaController:
         if service and "." in service:
             domain, name = service.split(".", 1)
             if self.hass.services.has_service(domain, name):
-                self.hass.async_create_task(
-                    self.hass.services.async_call(domain, name, {"title": title, "message": message}, blocking=False)
-                )
+                self._call(domain, name, {"title": title, "message": message})
                 return
-        self.hass.async_create_task(
-            self.hass.services.async_call(
-                "persistent_notification", "create",
-                {"title": title, "message": message, "notification_id": f"{DOMAIN}_{self.entry.entry_id}_{kind}"},
-                blocking=False,
-            )
+        self._call(
+            "persistent_notification", "create",
+            {"title": title, "message": message, "notification_id": f"{DOMAIN}_{self.entry.entry_id}_{kind}"},
         )
+
+    def _call(self, domain: str, service: str, data: dict[str, Any]) -> None:
+        """Chiama un servizio senza aspettare; se non esiste o fallisce lo si scrive nel registro e basta."""
+
+        async def _run() -> None:
+            try:
+                await self.hass.services.async_call(domain, service, data, blocking=True)
+            except HomeAssistantError as err:
+                _LOGGER.warning("Servizio %s.%s non riuscito: %s", domain, service, err)
+
+        self.hass.async_create_task(_run())
 
     # ------------------------------------------------------------------ dati per le entita' e per la scheda
     @property

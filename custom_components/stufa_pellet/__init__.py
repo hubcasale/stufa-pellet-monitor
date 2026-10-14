@@ -134,6 +134,9 @@ async def ws_update(hass: HomeAssistant, connection: websocket_api.ActiveConnect
     if "sources" in msg:
         src = msg["sources"]
         new = dict(entry.data)
+        if CONF_POWER in src and not src[CONF_POWER]:
+            connection.send_error(msg["id"], "invalid", "Il sensore di potenza è obbligatorio")
+            return
         for key in (CONF_POWER, CONF_SWITCH, CONF_ENERGY):
             if key in src:
                 if src[key]:

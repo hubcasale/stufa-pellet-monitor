@@ -71,7 +71,8 @@ Pulsanti della scheda:
 npm ci
 npm run build        # genera custom_components/stufa_pellet/frontend/stufa-pellet-card.js (da committare)
 npm test             # test della logica della scheda
-python3 -m pytest -q tests   # test della logica dello stato
+pip install pytest-homeassistant-custom-component home-assistant-frontend
+python3 -m pytest -q tests   # logica dello stato e prove dentro un Home Assistant vero
 ```
 
 `dev/index.html` (dopo `npm run build:dev`) mostra la scheda con un Home Assistant simulato, per vedere la grafica nei cinque stati.
