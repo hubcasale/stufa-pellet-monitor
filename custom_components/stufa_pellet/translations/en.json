@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Pellet stove",
+        "description": "Pick the smart plug that measures the stove's power. Thresholds, timings and notifications are set afterwards in the preferences.",
+        "data": {
+          "name": "Name",
+          "power_sensor": "Power sensor (W)",
+          "switch": "Plug switch (optional)",
+          "energy_sensor": "Energy sensor (optional)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This power sensor is already in use"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Stove preferences",
+        "description": "The same preferences as the cog window on the card.",
+        "data": {
+          "off_below": "Off below (W)",
+          "ignition_above": "Ignition from (W)",
+          "shutdown_min": "Shutdown from (W)",
+          "shutdown_max": "Shutdown up to (W)",
+          "shutdown_needs_switch_off": "Detect shutdown only while the switch is off",
+          "confirm_seconds": "Confirm a state change after (s)",
+          "grace_seconds": "Grace period after the switch turns on (s)",
+          "restore_delay_seconds": "Resume after the sensor is back (s)",
+          "sync_switch_on": "Turn the switch on when the stove starts by itself",
+          "sync_switch_off": "Turn the switch off when the stove is off",
+          "notify_events": "Notify on every start and stop",
+          "notify_sensor_problem": "Notify if the sensor is unavailable",
+          "notify_service": "Notify service (for example notify.phone)",
+          "tile_color": "Side tile colour",
+          "show_switch_button": "Show the switch button on the card"
+        }
+      }
+    }
+  },
+  "selector": {
+    "tile_color": {
+      "options": {
+        "rosso": "Red",
+        "arancio": "Orange",
+        "avorio": "Ivory"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "stato": {
+        "name": "State",
+        "state": {
+          "spenta": "Off",
+          "accensione": "Ignition",
+          "accesa": "Running",
+          "spegnimento": "Shutdown",
+          "non_disponibile": "Unavailable"
+        }
+      },
+      "accensioni_oggi": {
+        "name": "Ignitions today"
+      },
+      "ore_in_funzione_oggi": {
+        "name": "Running hours today"
+      },
+      "ultima_accensione": {
+        "name": "Last ignition"
+      },
+      "ultimo_spegnimento": {
+        "name": "Last shutdown"
+      },
+      "energia_oggi": {
+        "name": "Energy today"
+      }
+    },
+    "binary_sensor": {
+      "in_funzione": {
+        "name": "Running"
+      },
+      "azioni_bloccate": {
+        "name": "Actions blocked"
+      }
+    }
+  }
+}

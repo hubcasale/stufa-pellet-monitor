@@ -1,0 +1,90 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Stufa a pellet",
+        "description": "Scegli la presa intelligente che misura la potenza della stufa. Soglie, tempi e notifiche si impostano dopo, dalle preferenze.",
+        "data": {
+          "name": "Nome",
+          "power_sensor": "Sensore di potenza (W)",
+          "switch": "Interruttore della presa (facoltativo)",
+          "energy_sensor": "Sensore di energia (facoltativo)"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Questo sensore di potenza è già in uso"
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Preferenze della stufa",
+        "description": "Le stesse preferenze della finestra dell'ingranaggio sulla scheda.",
+        "data": {
+          "off_below": "Spenta sotto (W)",
+          "ignition_above": "Accensione da (W)",
+          "shutdown_min": "Spegnimento da (W)",
+          "shutdown_max": "Spegnimento fino a (W)",
+          "shutdown_needs_switch_off": "Riconosci lo spegnimento solo con l'interruttore spento",
+          "confirm_seconds": "Conferma del cambio di stato dopo (s)",
+          "grace_seconds": "Periodo di grazia dopo l'accensione dell'interruttore (s)",
+          "restore_delay_seconds": "Ripristino dopo il ritorno del sensore (s)",
+          "sync_switch_on": "Accendi l'interruttore quando la stufa parte da sola",
+          "sync_switch_off": "Spegni l'interruttore quando la stufa è spenta",
+          "notify_events": "Avvisa a ogni accensione e spegnimento",
+          "notify_sensor_problem": "Avvisa se il sensore non è disponibile",
+          "notify_service": "Servizio di notifica (per esempio notify.telefono)",
+          "tile_color": "Colore dei fianchi",
+          "show_switch_button": "Mostra il pulsante dell'interruttore sulla scheda"
+        }
+      }
+    }
+  },
+  "selector": {
+    "tile_color": {
+      "options": {
+        "rosso": "Rosso",
+        "arancio": "Arancio",
+        "avorio": "Avorio"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "stato": {
+        "name": "Stato",
+        "state": {
+          "spenta": "Spenta",
+          "accensione": "Accensione",
+          "accesa": "In funzione",
+          "spegnimento": "Spegnimento",
+          "non_disponibile": "Non disponibile"
+        }
+      },
+      "accensioni_oggi": {
+        "name": "Accensioni oggi"
+      },
+      "ore_in_funzione_oggi": {
+        "name": "Ore in funzione oggi"
+      },
+      "ultima_accensione": {
+        "name": "Ultima accensione"
+      },
+      "ultimo_spegnimento": {
+        "name": "Ultimo spegnimento"
+      },
+      "energia_oggi": {
+        "name": "Energia oggi"
+      }
+    },
+    "binary_sensor": {
+      "in_funzione": {
+        "name": "In funzione"
+      },
+      "azioni_bloccate": {
+        "name": "Azioni bloccate"
+      }
+    }
+  }
+}
