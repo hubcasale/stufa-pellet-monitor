@@ -18,9 +18,13 @@ function mk(state, i) {
   const since = new Date(now - (state === "accesa" ? 95 : 7) * 60000).toISOString();
   const settings = { off_below:5, ignition_above:250, shutdown_min:126, shutdown_max:129, shutdown_needs_switch_off:true, confirm_seconds:10, grace_seconds:15, restore_delay_seconds:30, sync_switch_on:true, sync_switch_off:true, notify_events:true, notify_sensor_problem:true, notify_service:"", tile_color: params.get("tile") || ["rosso","arancio","avorio","rosso","rosso"][i], show_switch_button:true };
   const info = { entry_id:"e"+i, title:"Stufa a pellet", state, power, since, sources:{power_sensor:"sensor.presa_power", switch:"switch.stufa", energy_sensor:null}, settings,
-    entities:{ stato:"sensor.stufa_stato", accensioni_oggi:"sensor.acc", ore_in_funzione_oggi:"sensor.ore" } };
+    schedule:{ enabled:true, slots:[{days:[0,1,2,3,4],start:"06:30",end:"08:30"},{days:[0,1,2,3,4],start:"17:00",end:"22:00"},{days:[5,6],start:"08:00",end:"23:00"}] },
+    mode: params.get("mode") || (state==="accesa"?"programma":"manuale"), timer_until: params.get("mode")==="timer" ? new Date(now+47*60000).toISOString() : null,
+    next_event:{kind:"off", time:new Date(now+95*60000).toISOString()}, last_action:null,
+    entities:{ modo:"sensor.stufa_modo", stato:"sensor.stufa_stato", accensioni_oggi:"sensor.acc", ore_in_funzione_oggi:"sensor.ore" } };
   const hass = { states:{
     "sensor.stufa_stato":{entity_id:"sensor.stufa_stato", state, attributes:{potenza:power, da:since, interruttore: state==="spenta"?"spento":"acceso", azioni_bloccate: state==="non_disponibile"}},
+    "sensor.stufa_modo":{entity_id:"sensor.stufa_modo", state: info.mode, attributes:{programmazione_attiva:true, timer_fino:info.timer_until, prossima_azione:"spegnimento", prossimo_evento:info.next_event.time}},
     "sensor.acc":{entity_id:"sensor.acc", state:"2", attributes:{}}, "sensor.ore":{entity_id:"sensor.ore", state:"3.4", attributes:{}},
     "sensor.presa_power":{entity_id:"sensor.presa_power", state: power===null?"unavailable":String(power), attributes:{}},
     "switch.stufa":{entity_id:"switch.stufa", state: state==="spenta"?"off":"on", attributes:{}} },
@@ -28,6 +32,8 @@ function mk(state, i) {
     callWS: async (m) => {
       if (m.type === "stufa_pellet/info") return info;
       if (m.type === "stufa_pellet/suggest") return { samples: 4200, days: 14, suggestion: { off_below: 4.5, ignition_above: 255, shutdown_min: 126.2, shutdown_max: 129.2 } };
+      if (m.type === "stufa_pellet/schedule") return { schedule: m.schedule };
+      if (m.type === "stufa_pellet/timer") return { timer_until: null };
       if (m.type === "stufa_pellet/update") return { settings: m.settings };
       if (m.type === "history/history_during_period") {
         const out = {}, t0 = Date.parse(m.start_time), t1 = Date.parse(m.end_time);

@@ -25,6 +25,12 @@ Un dispositivo "Stufa a pellet" con:
 - energia di oggi (kWh), solo se indichi un contatore di energia
 - `binary_sensor` in funzione e azioni bloccate (diagnostica)
 
+Con l'interruttore configurato aggiunge anche:
+
+- `sensor.stufa_a_pellet_modo` (programma / manuale / fuori_programma / timer) con gli attributi `prossima_azione`, `prossimo_evento`, `timer_fino` e `ultima_azione`
+- `sensor.stufa_a_pellet_prossimo_evento` (data e ora della prossima accensione o del prossimo spegnimento)
+- `switch.stufa_a_pellet_programmazione` per attivare o disattivare la programmazione dalle automazioni
+
 Facoltativamente tiene allineata la presa: la accende se la stufa parte da sola e la spegne dopo un periodo di grazia quando la stufa è spenta. Può avvisare con una notifica di Home Assistant o con un servizio `notify.*` a tua scelta.
 
 ## Installazione
@@ -54,8 +60,23 @@ Pulsanti della scheda:
 
 - **Stato**: frasi su cosa sta facendo la stufa e i numeri di oggi.
 - **Grafici**: potenza della presa con le linee delle soglie e le fasce dello stato (6 ore, 24 ore, 3 e 7 giorni); passa sopra per leggere i valori.
+- **Programma**: programmazione settimanale con **più fasce al giorno**: per ogni fascia scegli i giorni, l'ora di accensione e quella di spegnimento (se lo spegnimento è prima dell'accensione la fascia finisce il giorno dopo). Sopra le fasce c'è la vista dell'intera settimana. Le fasce che si sovrappongono si uniscono.
+- **Timer**: accende subito e spegne dopo 30 minuti, 1, 2, 3, 4, 6 ore o un tempo a scelta; durante il timer le fasce non intervengono.
 - **Presa**: accende e spegne l'interruttore (si può nascondere dalle preferenze).
 - **Ingranaggio, Preferenze**: sensori, soglie, comportamento, notifiche e colore delle ceramiche (rosso, arancio, avorio). Il pulsante *Suggerisci le soglie dallo storico* le ricava dagli ultimi 14 giorni della potenza. Le preferenze sono le stesse del menu *Configura* dell'integrazione.
+
+## Programma, timer e modalità
+
+La fascia agisce **solo ai cambi**: alle ore indicate accende o spegne l'interruttore, poi non insiste. Se accendi o spegni a mano (pulsante a muro, scheda, stufa), il programma riprende alla fascia successiva. La riga sopra la stufa dice cosa sta succedendo:
+
+| Riga | Significato |
+|---|---|
+| **Programma attivo** | la programmazione è attiva e la stufa fa quello che prevede; sono indicati il prossimo cambio e l'ora |
+| **Manuale** | la programmazione non è attiva |
+| **Manuale, fuori programma** | la programmazione è attiva ma la stufa è accesa o spenta contro quanto previsto |
+| **Timer** | timer in corso, con l'ora di spegnimento |
+
+Dopo un riavvio di Home Assistant si recupera al massimo l'ultimo cambio degli ultimi 10 minuti. Attivando la programmazione dentro una fascia la stufa non si accende da sola: parte alla fascia successiva. L'interruttore deve essere quello che comanda la stufa; senza interruttore configurato queste funzioni non compaiono.
 
 ## Migrare da `stufa_pellet.yaml`
 

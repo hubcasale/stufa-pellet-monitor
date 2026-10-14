@@ -2,7 +2,7 @@
 from homeassistant.const import Platform
 
 DOMAIN = "stufa_pellet"
-PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR]
+PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH]
 
 CONF_NAME = "name"
 CONF_POWER = "power_sensor"

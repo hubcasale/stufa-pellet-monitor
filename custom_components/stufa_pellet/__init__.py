@@ -19,12 +19,14 @@ from homeassistant.util import dt as dt_util
 from .const import CARD_FILE, CARD_URL, CONF_ENERGY, CONF_POWER, CONF_SWITCH, DOMAIN, PLATFORMS
 from .controller import StufaController
 from .logic import Settings, suggest_thresholds, valid_power
+from .schedule import Schedule
 
 _LOGGER = logging.getLogger(__name__)
 CONFIG_SCHEMA = vol.Schema({DOMAIN: vol.Schema({})}, extra=vol.ALLOW_EXTRA)
 ENTITY_KEYS = {
-    "sensor": ["stato", "accensioni_oggi", "ore_in_funzione_oggi", "ultima_accensione", "ultimo_spegnimento", "energia_oggi"],
+    "sensor": ["stato", "modo", "prossimo_evento", "accensioni_oggi", "ore_in_funzione_oggi", "ultima_accensione", "ultimo_spegnimento", "energia_oggi"],
     "binary_sensor": ["in_funzione", "azioni_bloccate"],
+    "switch": ["programmazione"],
 }
 
 
@@ -50,6 +52,8 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     websocket_api.async_register_command(hass, ws_info)
     websocket_api.async_register_command(hass, ws_update)
     websocket_api.async_register_command(hass, ws_suggest)
+    websocket_api.async_register_command(hass, ws_schedule)
+    websocket_api.async_register_command(hass, ws_timer)
     return True
 
 
@@ -190,3 +194,41 @@ async def ws_suggest(hass: HomeAssistant, connection: websocket_api.ActiveConnec
     samples = await get_instance(hass).async_add_executor_job(_load)
     suggestion = suggest_thresholds(samples)
     connection.send_result(msg["id"], {"samples": len(samples), "days": msg["days"], "suggestion": suggestion})
+
+
+@websocket_api.websocket_command(
+    {vol.Required("type"): "stufa_pellet/schedule", vol.Optional("entry_id"): str, vol.Required("schedule"): dict}
+)
+@callback
+def ws_schedule(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Salva la programmazione settimanale (fasce e attivazione); i dati non validi si scartano."""
+    c = _controller(hass, msg.get("entry_id"))
+    if c is None:
+        connection.send_error(msg["id"], "not_found", "Nessuna stufa configurata")
+        return
+    if not c.switch_entity:
+        connection.send_error(msg["id"], "no_switch", "Per programmare serve l'interruttore della stufa")
+        return
+    c.set_schedule(Schedule.from_dict(msg["schedule"]))
+    connection.send_result(msg["id"], {"schedule": c.schedule.to_dict()})
+
+
+@websocket_api.websocket_command(
+    {
+        vol.Required("type"): "stufa_pellet/timer",
+        vol.Optional("entry_id"): str,
+        vol.Required("minutes"): vol.All(int, vol.Range(min=0, max=24 * 60)),
+    }
+)
+@callback
+def ws_timer(hass: HomeAssistant, connection: websocket_api.ActiveConnection, msg: dict[str, Any]) -> None:
+    """Accende ora e spegne dopo il tempo indicato; 0 annulla il timer."""
+    c = _controller(hass, msg.get("entry_id"))
+    if c is None:
+        connection.send_error(msg["id"], "not_found", "Nessuna stufa configurata")
+        return
+    if not c.switch_entity:
+        connection.send_error(msg["id"], "no_switch", "Per il timer serve l'interruttore della stufa")
+        return
+    c.start_timer(msg["minutes"])
+    connection.send_result(msg["id"], {"timer_until": c.timer_until.isoformat() if c.timer_until else None})

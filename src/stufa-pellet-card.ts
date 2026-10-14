@@ -1,12 +1,14 @@
 import { LitElement, html, css, nothing } from "lit";
 import { property, state } from "lit/decorators.js";
 import { unsafeSVG } from "lit/directives/unsafe-svg.js";
-import { STATE_COLOR, STATE_LABEL, STATE_TONE, asState, fmt, formatDuration, gaugeModel, stateSegments, toNumber, type Seg } from "./card-logic";
+import { STATE_COLOR, STATE_LABEL, STATE_TONE, asState, fmt, formatDuration, gaugeModel, modeView, stateSegments, toNumber, type Seg } from "./card-logic";
 import { stoveSvg } from "./stove-svg";
 import "./info-dialog";
 import "./charts-dialog";
 import "./settings-dialog";
-import type { HomeAssistant, RawState, StufaInfo } from "./types";
+import "./schedule-dialog";
+import "./timer-dialog";
+import type { HomeAssistant, RawState, StufaInfo, StufaMode } from "./types";
 
 const TIMELINE_MS = 24 * 3600000;
 
@@ -96,8 +98,13 @@ export class StufaPelletCard extends LitElement {
     }
   }
 
-  private _open(tag: "stufa-info-dialog" | "stufa-charts-dialog" | "stufa-settings-dialog"): void {
+  private async _open(tag: "stufa-info-dialog" | "stufa-charts-dialog" | "stufa-settings-dialog" | "stufa-schedule-dialog" | "stufa-timer-dialog"): Promise<void> {
     if (!this._info) return;
+    if (tag === "stufa-schedule-dialog" || tag === "stufa-timer-dialog" || tag === "stufa-settings-dialog") {
+      while (this._loading) await new Promise((r) => setTimeout(r, 50));
+      await this._loadInfo();
+      if (!this._info) return;
+    }
     const el = document.createElement(tag) as HTMLElement & { hass: HomeAssistant; info: StufaInfo };
     el.hass = this.hass;
     el.info = this._info;
@@ -135,7 +142,17 @@ export class StufaPelletCard extends LitElement {
     const sinceRaw = (a.da as string | null) ?? info.since;
     const swState = info.sources.switch ? this.hass.states[info.sources.switch]?.state : undefined;
     const num = (k: string) => (ent[k] ? toNumber(this.hass.states[ent[k]]?.state) : null);
+    const mo = ent.modo ? this.hass.states[ent.modo] : undefined;
+    const ma = (mo?.attributes ?? {}) as Record<string, unknown>;
+    const mode = (["programma", "manuale", "fuori_programma", "timer"].includes(String(mo?.state)) ? mo!.state : info.mode) as StufaMode;
+    const nextRaw = (ma.prossimo_evento as string | null | undefined) ?? info.next_event?.time ?? null;
+    const nextKind = ma.prossima_azione ? (ma.prossima_azione === "accensione" ? "on" : "off") : info.next_event?.kind ?? "off";
+    const timerRaw = (ma.timer_fino as string | null | undefined) ?? info.timer_until;
     return {
+      mode,
+      scheduleEnabled: ma.programmazione_attiva === true || (mo === undefined && info.schedule.enabled),
+      next: nextRaw ? { kind: nextKind as "on" | "off", time: Date.parse(nextRaw) } : null,
+      timerUntil: timerRaw ? Date.parse(timerRaw) : null,
       state,
       power,
       sinceMs: sinceRaw ? Date.parse(sinceRaw) : null,
@@ -175,6 +192,13 @@ export class StufaPelletCard extends LitElement {
             <div class="pill ${tone}"><i></i>${STATE_LABEL[lv.state]}${since && lv.state !== "non_disponibile" ? html`<span class="since"> · da ${since}</span>` : nothing}</div>
           </div>
 
+          ${info.sources.switch
+            ? (() => {
+                const mv = modeView(lv.mode, lv.scheduleEnabled, lv.next, lv.timerUntil, this._now);
+                return html`<div class="mode ${mv.tone}"><ha-icon icon=${mv.icon}></ha-icon><span class="ml">${mv.label}</span>${mv.detail ? html`<span class="md">· ${mv.detail}</span>` : nothing}</div>`;
+              })()
+            : nothing}
+
           <div class="main">
             <div class="stove">${unsafeSVG(stoveSvg(lv.state, s.tile_color))}</div>
             <div class="side">
@@ -207,13 +231,17 @@ export class StufaPelletCard extends LitElement {
           </div>
 
           <div class="actions">
-            <button class="btn" @click=${() => this._open("stufa-info-dialog")}><ha-icon icon="mdi:information-outline"></ha-icon>Stato</button>
-            <button class="btn" @click=${() => this._open("stufa-charts-dialog")}><ha-icon icon="mdi:chart-line"></ha-icon>Grafici</button>
+            <button class="btn" @click=${() => void this._open("stufa-info-dialog")}><ha-icon icon="mdi:information-outline"></ha-icon>Stato</button>
+            <button class="btn" @click=${() => void this._open("stufa-charts-dialog")}><ha-icon icon="mdi:chart-line"></ha-icon>Grafici</button>
+            ${info.sources.switch
+              ? html`<button class="btn" @click=${() => void this._open("stufa-schedule-dialog")}><ha-icon icon="mdi:calendar-clock"></ha-icon>Programma</button>
+                <button class="btn" @click=${() => void this._open("stufa-timer-dialog")}><ha-icon icon="mdi:timer-outline"></ha-icon>Timer</button>`
+              : nothing}
             ${s.show_switch_button && info.sources.switch
               ? html`<button class=${lv.switchOn ? "btn plug on" : "btn plug"} @click=${() => this._toggleSwitch()} aria-pressed=${lv.switchOn ? "true" : "false"}><ha-icon icon="mdi:power-plug"></ha-icon>${lv.switchOn ? "Presa accesa" : "Presa spenta"}</button>`
               : nothing}
             <span class="grow"></span>
-            <button class="btn icon" aria-label="Preferenze" @click=${() => this._open("stufa-settings-dialog")}><ha-icon icon="mdi:cog"></ha-icon></button>
+            <button class="btn icon" aria-label="Preferenze" @click=${() => void this._open("stufa-settings-dialog")}><ha-icon icon="mdi:cog"></ha-icon></button>
           </div>
         </div>
       </ha-card>
@@ -235,6 +263,13 @@ export class StufaPelletCard extends LitElement {
     .pill.warning { background: rgba(245, 158, 11, 0.2); color: #92400e; } .pill.warning i { background: #f59e0b; }
     .pill.accent { background: rgba(96, 165, 250, 0.2); color: #1e40af; } .pill.accent i { background: #60a5fa; }
     .pill.danger { background: rgba(220, 38, 38, 0.14); color: #b91c1c; } .pill.danger i { background: #dc2626; }
+    .mode { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; padding: 8px 12px; margin-bottom: 12px; border-radius: 12px; font-size: 0.88rem; background: var(--secondary-background-color, #f2f2f2); }
+    .mode ha-icon { --mdc-icon-size: 18px; }
+    .mode .ml { font-weight: 600; }
+    .mode .md { color: var(--secondary-text-color, #727272); }
+    .mode.success { background: rgba(22, 163, 74, 0.13); } .mode.success ha-icon, .mode.success .ml { color: #166534; }
+    .mode.warning { background: rgba(245, 158, 11, 0.16); } .mode.warning ha-icon, .mode.warning .ml { color: #92400e; }
+    .mode.accent { background: rgba(96, 165, 250, 0.16); } .mode.accent ha-icon, .mode.accent .ml { color: #1e40af; }
     .main { display: flex; gap: 16px; align-items: stretch; }
     .stove { flex: 0 0 34%; max-width: 190px; min-width: 110px; }
     .stove svg { width: 100%; height: auto; display: block; }
@@ -290,4 +325,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c STUFA-PELLET-MONITOR %c v0.1.1 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
+console.info("%c STUFA-PELLET-MONITOR %c v0.2.0 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");

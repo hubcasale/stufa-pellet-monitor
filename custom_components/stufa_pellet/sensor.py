@@ -70,6 +70,49 @@ class StateSensor(StufaEntity, SensorEntity):
         }
 
 
+class ModeSensor(StufaEntity, SensorEntity):
+    _attr_device_class = SensorDeviceClass.ENUM
+    _attr_options = ["programma", "manuale", "fuori_programma", "timer"]
+    _attr_icon = "mdi:calendar-clock"
+
+    def __init__(self, controller: StufaController) -> None:
+        super().__init__(controller, "modo")
+
+    @property
+    def native_value(self) -> str:
+        return self.controller.mode
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        c = self.controller
+        nxt = c.next_event
+        return {
+            "programmazione_attiva": c.schedule.enabled,
+            "timer_fino": c.timer_until.isoformat() if c.timer_until else None,
+            "prossima_azione": None if nxt is None else ("accensione" if nxt[0] == "on" else "spegnimento"),
+            "prossimo_evento": None if nxt is None else nxt[1].isoformat(),
+            "ultima_azione": c.last_action,
+        }
+
+
+class NextEventSensor(StufaEntity, SensorEntity):
+    _attr_device_class = SensorDeviceClass.TIMESTAMP
+    _attr_icon = "mdi:clock-start"
+
+    def __init__(self, controller: StufaController) -> None:
+        super().__init__(controller, "prossimo_evento")
+
+    @property
+    def native_value(self) -> datetime | None:
+        nxt = self.controller.next_event
+        return nxt[1] if nxt else None
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        nxt = self.controller.next_event
+        return {"azione": None if nxt is None else ("accensione" if nxt[0] == "on" else "spegnimento")}
+
+
 class IgnitionsSensor(StufaEntity, SensorEntity):
     _attr_state_class = SensorStateClass.MEASUREMENT
     _attr_icon = "mdi:fire-circle"
@@ -126,6 +169,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     controller: StufaController = hass.data[DOMAIN][entry.entry_id]
     entities: list[SensorEntity] = [
         StateSensor(controller),
+        ModeSensor(controller),
+        NextEventSensor(controller),
         IgnitionsSensor(controller),
         HoursSensor(controller),
         LastTimeSensor(controller, "ultima_accensione", "last_on"),

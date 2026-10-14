@@ -122,3 +122,59 @@ test("gaugeModel: etichette vicine non si sovrappongono", () => {
   assert.ok(g.ticks.some((t) => t.label === "5"));
   assert.ok(g.ticks.some((t) => t.label === "250"));
 });
+
+import { crossesMidnight, dayIntervals, describeDays, modeView, parseHm, scheduleErrors, slotError, whenText } from "../src/card-logic";
+
+test("parseHm e slotError", () => {
+  assert.equal(parseHm("07:30"), 450);
+  assert.equal(parseHm("24:00"), null);
+  assert.equal(parseHm("24:00", true), 1440);
+  assert.equal(parseHm("7:61"), null);
+  assert.equal(slotError({ days: [], start: "07:00", end: "08:00" }), "Scegli almeno un giorno.");
+  assert.equal(slotError({ days: [0], start: "07:00", end: "07:00" }), "Inizio e fine non possono coincidere.");
+  assert.equal(slotError({ days: [0], start: "", end: "07:00" }), "Orario non valido.");
+  assert.equal(slotError({ days: [0], start: "07:00", end: "08:00" }), null);
+  assert.equal(crossesMidnight({ days: [0], start: "22:00", end: "02:00" }), true);
+  assert.equal(crossesMidnight({ days: [0], start: "07:00", end: "08:00" }), false);
+  assert.equal(scheduleErrors({ enabled: true, slots: [{ days: [0], start: "07:00", end: "07:00" }] }).length, 1);
+});
+
+test("dayIntervals: più fasce, unione, notte e fine settimana", () => {
+  const iv = dayIntervals([
+    { days: [0], start: "06:30", end: "08:30" },
+    { days: [0], start: "08:00", end: "10:00" },
+    { days: [0], start: "17:00", end: "22:00" },
+    { days: [6], start: "22:00", end: "02:00" },
+  ]);
+  assert.deepEqual(iv[0], [[0, 120], [390, 600], [1020, 1320]]);
+  assert.deepEqual(iv[6], [[1320, 1440]]);
+});
+
+test("describeDays", () => {
+  assert.equal(describeDays([0, 1, 2, 3, 4]), "Lun–Ven");
+  assert.equal(describeDays([6, 5]), "Sab–Dom");
+  assert.equal(describeDays([0, 1, 2, 3, 4, 5, 6]), "Tutti i giorni");
+  assert.equal(describeDays([2, 0]), "Lun Mer");
+});
+
+test("whenText: oggi, domani, altro giorno", () => {
+  const now = new Date(2026, 9, 14, 20, 0).getTime();
+  assert.equal(whenText(new Date(2026, 9, 14, 22, 5).getTime(), now), "oggi alle 22:05");
+  assert.equal(whenText(new Date(2026, 9, 15, 6, 30).getTime(), now), "domani alle 06:30");
+  assert.equal(whenText(new Date(2026, 9, 17, 7, 0).getTime(), now), "sab 17 alle 07:00");
+});
+
+test("modeView: le quattro modalità", () => {
+  const now = new Date(2026, 9, 14, 20, 0).getTime();
+  const next = { kind: "on" as const, time: new Date(2026, 9, 15, 6, 30).getTime() };
+  const p = modeView("programma", true, next, null, now);
+  assert.equal(p.label, "Programma attivo");
+  assert.match(p.detail, /prossima accensione domani alle 06:30/);
+  assert.equal(modeView("manuale", false, null, null, now).detail, "programmazione non attiva");
+  const f = modeView("fuori_programma", true, next, null, now);
+  assert.equal(f.tone, "warning");
+  assert.match(f.detail, /il programma riprende/);
+  const t = modeView("timer", false, null, now + 47 * 60000, now);
+  assert.equal(t.label, "Timer");
+  assert.match(t.detail, /tra 47 min/);
+});

@@ -1,6 +1,6 @@
 // Logica pura della scheda: etichette, soglie, tratti dello stato, frasi, assi e campionamento dei grafici.
 // Nessuna dipendenza da Lit o da Home Assistant: si prova con node:test.
-import type { RawState, StufaSettings, StufaState } from "./types";
+import type { RawState, ScheduleData, SlotData, StufaMode, StufaSettings, StufaState } from "./types";
 
 export const STATES: StufaState[] = ["spenta", "accensione", "accesa", "spegnimento", "non_disponibile"];
 
@@ -368,4 +368,142 @@ export function clampStep(v: number, min: number, max: number, step: number): nu
   const c = Math.min(max, Math.max(min, v));
   const decimals = (String(step).split(".")[1] ?? "").length;
   return Number((Math.round(c / step) * step).toFixed(decimals));
+}
+
+// ---- programmazione settimanale e timer
+export const DAY_LABELS = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
+export const DAY_INITIALS = ["L", "M", "M", "G", "V", "S", "D"];
+export const TIMER_PRESETS = [30, 60, 120, 180, 240, 360];
+
+export function parseHm(v: string, allow24 = false): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec(v.trim());
+  if (!m || Number(m[2]) > 59) return null;
+  const n = Number(m[1]) * 60 + Number(m[2]);
+  return n >= 0 && n <= (allow24 ? 1440 : 1439) ? n : null;
+}
+
+export function fmtHm(minutes: number): string {
+  return `${String(Math.floor(minutes / 60)).padStart(2, "0")}:${String(minutes % 60).padStart(2, "0")}`;
+}
+
+/** Errore di una fascia (testo) oppure null se è valida. */
+export function slotError(s: SlotData): string | null {
+  if (s.days.length === 0) return "Scegli almeno un giorno.";
+  const a = parseHm(s.start);
+  const b = parseHm(s.end, true);
+  if (a === null || b === null) return "Orario non valido.";
+  if (a === b) return "Inizio e fine non possono coincidere.";
+  return null;
+}
+
+export function crossesMidnight(s: SlotData): boolean {
+  const a = parseHm(s.start);
+  const b = parseHm(s.end, true);
+  return a !== null && b !== null && b <= a;
+}
+
+/** Intervalli accesi per ogni giorno (lunedì..domenica) in minuti, già uniti: stessa logica del server. */
+export function dayIntervals(slots: SlotData[]): [number, number][][] {
+  const week = 7 * 1440;
+  const mask = new Uint8Array(week);
+  for (const s of slots) {
+    const a = parseHm(s.start);
+    const b = parseHm(s.end, true);
+    if (a === null || b === null || a === b) continue;
+    const len = b > a ? b - a : 1440 - a + b;
+    for (const d of s.days) {
+      if (d < 0 || d > 6) continue;
+      for (let i = 0; i < len; i++) mask[(d * 1440 + a + i) % week] = 1;
+    }
+  }
+  const out: [number, number][][] = [];
+  for (let d = 0; d < 7; d++) {
+    const segs: [number, number][] = [];
+    let start: number | null = null;
+    for (let i = 0; i < 1440; i++) {
+      const on = mask[d * 1440 + i] === 1;
+      if (on && start === null) start = i;
+      else if (!on && start !== null) {
+        segs.push([start, i]);
+        start = null;
+      }
+    }
+    if (start !== null) segs.push([start, 1440]);
+    out.push(segs);
+  }
+  return out;
+}
+
+export function describeDays(days: number[]): string {
+  const d = [...new Set(days)].sort((a, b) => a - b);
+  if (d.length === 7) return "Tutti i giorni";
+  if (d.length === 5 && d.join() === "0,1,2,3,4") return "Lun–Ven";
+  if (d.length === 2 && d.join() === "5,6") return "Sab–Dom";
+  return d.map((x) => DAY_LABELS[x]).join(" ");
+}
+
+/** "oggi alle 17:00", "domani alle 07:00", "sab 24 alle 07:00". */
+export function whenText(t: number, now: number): string {
+  const d = new Date(t);
+  const n = new Date(now);
+  const midnight = (x: Date) => new Date(x.getFullYear(), x.getMonth(), x.getDate()).getTime();
+  const days = Math.round((midnight(d) - midnight(n)) / 86400000);
+  const hm = `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  const names = ["dom", "lun", "mar", "mer", "gio", "ven", "sab"];
+  if (days === 0) return `oggi alle ${hm}`;
+  if (days === 1) return `domani alle ${hm}`;
+  return `${names[d.getDay()]} ${d.getDate()} alle ${hm}`;
+}
+
+export interface ModeView {
+  label: string;
+  tone: Tone;
+  icon: string;
+  detail: string;
+}
+
+export function modeView(mode: StufaMode, scheduleEnabled: boolean, next: { kind: "on" | "off"; time: number } | null, timerUntil: number | null, now: number): ModeView {
+  const nextText = next ? `${next.kind === "on" ? "prossima accensione" : "spegnimento"} ${whenText(next.time, now)}` : "";
+  switch (mode) {
+    case "timer":
+      return {
+        label: "Timer",
+        tone: "accent",
+        icon: "mdi:timer-outline",
+        detail: timerUntil !== null ? `si spegne ${whenText(timerUntil, now)} (tra ${formatDuration(timerUntil - now)})` : "",
+      };
+    case "programma":
+      return { label: "Programma attivo", tone: "success", icon: "mdi:calendar-check", detail: nextText };
+    case "fuori_programma":
+      return {
+        label: "Manuale, fuori programma",
+        tone: "warning",
+        icon: "mdi:hand-back-right",
+        detail: nextText ? `il programma riprende: ${nextText}` : "",
+      };
+    default:
+      return {
+        label: "Manuale",
+        tone: "neutral",
+        icon: "mdi:hand-back-right-outline",
+        detail: scheduleEnabled ? "" : "programmazione non attiva",
+      };
+  }
+}
+
+export function emptySchedule(): ScheduleData {
+  return { enabled: false, slots: [] };
+}
+
+export function defaultSlot(): SlotData {
+  return { days: [0, 1, 2, 3, 4], start: "07:00", end: "09:00" };
+}
+
+export function scheduleErrors(sch: ScheduleData): string[] {
+  const errs: string[] = [];
+  sch.slots.forEach((s, i) => {
+    const e = slotError(s);
+    if (e) errs.push(`Fascia ${i + 1}: ${e}`);
+  });
+  return errs;
 }

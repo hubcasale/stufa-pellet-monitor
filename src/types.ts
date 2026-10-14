@@ -39,6 +39,25 @@ export interface StufaInfo {
   sources: { power_sensor: string; switch: string | null; energy_sensor: string | null };
   settings: StufaSettings;
   entities: Record<string, string>;
+  schedule: ScheduleData;
+  mode: StufaMode;
+  timer_until: string | null;
+  next_event: { kind: "on" | "off"; time: string } | null;
+  last_action: { azione: string; motivo: string; quando: string } | null;
+}
+
+export type StufaMode = "programma" | "manuale" | "fuori_programma" | "timer";
+
+/** Una fascia: giorni (0 = lunedì), "HH:MM" di inizio e fine; se la fine non segue l'inizio finisce il giorno dopo. */
+export interface SlotData {
+  days: number[];
+  start: string;
+  end: string;
+}
+
+export interface ScheduleData {
+  enabled: boolean;
+  slots: SlotData[];
 }
 
 export type StufaState = "spenta" | "accensione" | "accesa" | "spegnimento" | "non_disponibile";

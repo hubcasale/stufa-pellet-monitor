@@ -14,12 +14,19 @@ from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
 from .const import CONF_ENERGY, CONF_POWER, CONF_SWITCH, DOMAIN, SIGNAL_UPDATE, STORAGE_VERSION, TICK_SECONDS
+from .schedule import Schedule, decide_mode
 from .logic import (
     RUNNING_STATES, STATE_IGNITION, STATE_OFF, STATE_SHUTDOWN, STATE_UNAVAILABLE, Blocker, DailyStats, Settings,
     StateTracker, classify, decide_switch_action, format_duration, valid_power,
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def _parse_dt(value: Any) -> datetime | None:
+    if not isinstance(value, str):
+        return None
+    return dt_util.parse_datetime(value)
 
 
 class StufaController:
@@ -40,6 +47,10 @@ class StufaController:
         self._unsubs: list = []
         self._last_save = dt_util.utcnow()
         self._notified_unavailable = False
+        self.schedule = Schedule()
+        self.timer_until: datetime | None = None
+        self.last_action: dict[str, Any] | None = None
+        self._last_sched_check: datetime | None = None
         self.sources = (entry.data.get(CONF_POWER), entry.data.get(CONF_SWITCH) or None, entry.data.get(CONF_ENERGY) or None)
 
     # ------------------------------------------------------------------ ciclo di vita
@@ -64,6 +75,10 @@ class StufaController:
         now = dt_util.now()
         self.stats = DailyStats.from_dict(saved.get("stats"), now)
         self._energy_base = saved.get("energy_base", {}) or {}
+        self.schedule = Schedule.from_dict(saved.get("schedule"))
+        self.timer_until = _parse_dt(saved.get("timer_until"))
+        self.last_action = saved.get("last_action") if isinstance(saved.get("last_action"), dict) else None
+        self._last_sched_check = _parse_dt(saved.get("last_sched_check"))
         entities = [e for e in (self.power_entity, self.switch_entity, self.energy_entity) if e]
         self._unsubs.append(async_track_state_change_event(self.hass, entities, self._on_event))
         self._unsubs.append(async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=TICK_SECONDS)))
@@ -76,7 +91,16 @@ class StufaController:
         await self._async_save()
 
     async def _async_save(self) -> None:
-        await self._store.async_save({"stats": self.stats.to_dict(), "energy_base": self._energy_base})
+        await self._store.async_save(
+            {
+                "stats": self.stats.to_dict(),
+                "energy_base": self._energy_base,
+                "schedule": self.schedule.to_dict(),
+                "timer_until": self.timer_until.isoformat() if self.timer_until else None,
+                "last_action": self.last_action,
+                "last_sched_check": self._last_sched_check.isoformat() if self._last_sched_check else None,
+            }
+        )
         self._last_save = dt_util.utcnow()
 
     @callback
@@ -140,7 +164,84 @@ class StufaController:
                     self._notify("event", "Stufa a pellet", f"Rilevata accensione, interruttore acceso (potenza {power:.0f} W).")
                 else:
                     self._notify("event", "Stufa a pellet", f"Potenza minima rilevata, interruttore spento (potenza {power:.1f} W).")
+        self._run_schedule(now, startup)
         async_dispatcher_send(self.hass, self.signal)
+
+    # ------------------------------------------------------------------ programmazione e timer
+    CATCH_UP = timedelta(minutes=10)     # dopo un riavvio si recupera al massimo l'ultimo evento degli ultimi 10 minuti
+
+    def _run_schedule(self, now: datetime, startup: bool) -> None:
+        """Esegue accensioni e spegnimenti previsti dal timer e dalla programmazione (solo ai cambi, non di continuo)."""
+        if not self.switch_entity:
+            self._last_sched_check = now
+            return
+        if self.timer_until is not None and now >= self.timer_until:
+            self.timer_until = None
+            if not (self.schedule.enabled and self.schedule.is_on_at(now)):
+                self._command("turn_off", "timer", now)
+            self.hass.async_create_task(self._async_save())
+        if self.schedule.enabled and self.timer_until is None:
+            since = self._last_sched_check
+            if since is None:
+                since = now
+            elif startup:
+                since = max(since, now - self.CATCH_UP)
+            events = self.schedule.events(since, now)
+            if events:
+                kind, when = events[-1]
+                self._command("turn_on" if kind == "on" else "turn_off", "programma", now)
+        self._last_sched_check = now
+
+    def _command(self, action: str, reason: str, now: datetime) -> None:
+        """Comanda l'interruttore e lo ricorda: serve a mostrare l'ultima azione e a dare tempo alla stufa di rispondere."""
+        if not self.switch_entity:
+            return
+        self._call("homeassistant", action, {"entity_id": self.switch_entity})
+        self.last_action = {"azione": action, "motivo": reason, "quando": now.isoformat()}
+        label = {"programma": "Programma", "timer": "Timer", "manuale": "Comando"}.get(reason, reason)
+        self._notify("event", "Stufa a pellet", f"{label}: interruttore {'acceso' if action == 'turn_on' else 'spento'}.")
+        self.hass.async_create_task(self._async_save())
+
+    @callback
+    def set_schedule(self, schedule: Schedule) -> None:
+        self.schedule = schedule
+        self._last_sched_check = dt_util.now()
+        self.hass.async_create_task(self._async_save())
+        self._evaluate(dt_util.now())
+
+    @callback
+    def start_timer(self, minutes: int) -> None:
+        """Accende ora e spegne dopo `minutes`; con 0 annulla il timer (e spegne se la programmazione non lo vuole acceso)."""
+        now = dt_util.now()
+        if minutes <= 0:
+            if self.timer_until is not None:
+                self.timer_until = None
+                if not (self.schedule.enabled and self.schedule.is_on_at(now)):
+                    self._command("turn_off", "timer", now)
+        else:
+            self.timer_until = now + timedelta(minutes=minutes)
+            self._command("turn_on", "timer", now)
+        self.hass.async_create_task(self._async_save())
+        self._evaluate(now)
+
+    @property
+    def mode(self) -> str:
+        now = dt_util.now()
+        recent = False
+        if self.last_action:
+            at = _parse_dt(self.last_action.get("quando"))
+            recent = at is not None and (now - at).total_seconds() < 600
+        return decide_mode(
+            self.schedule.enabled, self.timer_until is not None, self.schedule.is_on_at(now), self.state, recent
+        )
+
+    @property
+    def next_event(self) -> tuple[str, datetime] | None:
+        """Il prossimo cambio: la fine del timer se c'è, altrimenti quello della programmazione se attiva."""
+        now = dt_util.now()
+        if self.timer_until is not None:
+            return ("off", self.timer_until)
+        return self.schedule.next_event(now) if self.schedule.enabled else None
 
     # ------------------------------------------------------------------ energia
     def _update_energy(self, now: datetime) -> None:
@@ -229,4 +330,9 @@ class StufaController:
                 "energy_sensor": self.energy_entity,
             },
             "settings": self.settings.to_dict(),
+            "schedule": self.schedule.to_dict(),
+            "mode": self.mode,
+            "timer_until": self.timer_until.isoformat() if self.timer_until else None,
+            "next_event": (lambda e: {"kind": e[0], "time": e[1].isoformat()} if e else None)(self.next_event),
+            "last_action": self.last_action,
         }

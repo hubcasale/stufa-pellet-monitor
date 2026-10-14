@@ -76,6 +76,18 @@
       },
       "energia_oggi": {
         "name": "Energy today"
+      },
+      "modo": {
+        "name": "Modo",
+        "state": {
+          "programma": "Programma",
+          "manuale": "Manuale",
+          "fuori_programma": "Fuori programma",
+          "timer": "Timer"
+        }
+      },
+      "prossimo_evento": {
+        "name": "Prossimo evento"
       }
     },
     "binary_sensor": {
@@ -84,6 +96,11 @@
       },
       "azioni_bloccate": {
         "name": "Actions blocked"
+      }
+    },
+    "switch": {
+      "programmazione": {
+        "name": "Programmazione"
       }
     }
   }
