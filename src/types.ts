@@ -36,7 +36,7 @@ export interface StufaInfo {
   state: StufaState;
   power: number | null;
   since: string | null;
-  sources: { power_sensor: string; switch: string | null; energy_sensor: string | null };
+  sources: { power_sensor: string; switch: string | null; plug: string | null; energy_sensor: string | null };
   settings: StufaSettings;
   entities: Record<string, string>;
   schedule: ScheduleData;

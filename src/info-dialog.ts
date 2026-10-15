@@ -33,6 +33,7 @@ export class StufaInfoDialog extends LitElement {
     const a = (st?.attributes ?? {}) as Record<string, unknown>;
     const sinceRaw = (a.da as string | null) ?? this.info.since;
     const sw = a.interruttore === "acceso" ? true : a.interruttore === "spento" ? false : null;
+    const plugOn = a.presa === "accesa" ? true : a.presa === "spenta" ? false : null;
     const num = (key: string) => (ent[key] ? toNumber(this.hass.states[ent[key]]?.state) : null);
     const lines = summaryLines(
       {
@@ -40,6 +41,7 @@ export class StufaInfoDialog extends LitElement {
         power: toNumber(a.potenza) ?? this.info.power,
         sinceMs: sinceRaw ? Date.parse(sinceRaw) : null,
         switchOn: sw,
+        plugOn,
         blocked: a.azioni_bloccate === true,
         ignitionsToday: num("accensioni_oggi"),
         hoursToday: num("ore_in_funzione_oggi"),

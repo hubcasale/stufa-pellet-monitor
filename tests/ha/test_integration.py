@@ -252,3 +252,52 @@ async def test_websocket_schedule_and_timer(hass: HomeAssistant, hass_ws_client)
     await client.send_json({"id": 2, "type": "stufa_pellet/timer", "minutes": 5000})
     assert not (await client.receive_json())["success"]
     assert hass.data[DOMAIN][entry.entry_id].schedule.enabled is True
+
+
+PLUG = "switch.presa_stufa_pellet"
+
+
+async def test_plug_is_shown_but_never_commanded(hass: HomeAssistant, hass_ws_client) -> None:
+    """L'interruttore di accensione è lo Shelly; la presa si legge soltanto (attributo `presa`, nessun comando)."""
+    hass.states.async_set(POWER, "300", {"unit_of_measurement": "W", "device_class": "power"})
+    hass.states.async_set(SWITCH, "off")
+    hass.states.async_set(PLUG, "on")
+    calls = _record_switch_calls(hass)
+    entry = MockConfigEntry(
+        domain=DOMAIN, title="Stufa a pellet", data={"power_sensor": POWER, "switch": SWITCH, "plug": PLUG}, options={"confirm_seconds": 0}
+    )
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    # la stufa parte da sola: si accende lo Shelly, mai la presa
+    hass.states.async_set(POWER, "320", {"unit_of_measurement": "W"})
+    await hass.async_block_till_done()
+    assert calls and all(entity == SWITCH for _, entity in calls)
+    eid = _state_entity(hass, entry)
+    assert hass.states.get(eid).attributes["presa"] == "accesa"
+    hass.states.async_set(PLUG, "off")
+    await hass.async_block_till_done()
+    assert hass.states.get(eid).attributes["presa"] == "spenta"
+    assert all(entity == SWITCH for _, entity in calls)
+
+    client = await hass_ws_client(hass)
+    await client.send_json({"id": 1, "type": "stufa_pellet/info"})
+    res = await client.receive_json()
+    assert res["success"] and res["result"]["sources"]["plug"] == PLUG and res["result"]["sources"]["switch"] == SWITCH
+
+
+async def test_plug_optional_and_editable(hass: HomeAssistant, hass_ws_client) -> None:
+    entry = await _setup(hass)
+    eid = _state_entity(hass, entry)
+    assert hass.states.get(eid).attributes["presa"] is None
+    hass.states.async_set(PLUG, "off")
+    client = await hass_ws_client(hass)
+    await client.send_json({"id": 1, "type": "stufa_pellet/update", "sources": {"plug": PLUG}})
+    assert (await client.receive_json())["success"]
+    await hass.async_block_till_done()
+    assert entry.data["plug"] == PLUG and entry.data["switch"] == SWITCH
+    assert hass.data[DOMAIN][entry.entry_id].plug_on is False
+    await client.send_json({"id": 2, "type": "stufa_pellet/update", "sources": {"plug": ""}})
+    assert (await client.receive_json())["success"]
+    await hass.async_block_till_done()
+    assert "plug" not in entry.data and entry.data["switch"] == SWITCH

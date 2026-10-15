@@ -66,6 +66,7 @@ class StateSensor(StufaEntity, SensorEntity):
             "da": c.since.isoformat() if c.since else None,
             "durata": c.duration_text,
             "interruttore": None if c.switch_on is None else ("acceso" if c.switch_on else "spento"),
+            "presa": None if c.plug_on is None else ("accesa" if c.plug_on else "spenta"),
             "azioni_bloccate": c.blocked,
         }
 

@@ -13,11 +13,11 @@ interface Suggestion {
 type BoolKey = "shutdown_needs_switch_off" | "sync_switch_on" | "sync_switch_off" | "notify_events" | "notify_sensor_problem" | "show_switch_button";
 
 const TOGGLES: Record<string, { key: BoolKey; label: string; hint: string }[]> = {
-  soglie: [{ key: "shutdown_needs_switch_off", label: "Spegnimento solo con la presa spenta", hint: "La fascia di spegnimento vale solo se l'interruttore della presa è spento; con la presa accesa la stessa potenza vuol dire 'in funzione'." }],
+  soglie: [{ key: "shutdown_needs_switch_off", label: "Spegnimento solo con l'interruttore spento", hint: "La fascia di spegnimento vale solo se l'interruttore della stufa è spento; con l'interruttore acceso la stessa potenza vuol dire 'in funzione'." }],
   comportamento: [
-    { key: "sync_switch_on", label: "Accendi la presa quando la stufa parte", hint: "Se la stufa si accende da sola, l'interruttore si allinea." },
-    { key: "sync_switch_off", label: "Spegni la presa a stufa spenta", hint: "Dopo il periodo di grazia la presa si spegne quando la stufa risulta spenta." },
-    { key: "show_switch_button", label: "Pulsante di accensione sulla scheda", hint: "Mostra il pulsante per accendere e spegnere la presa." },
+    { key: "sync_switch_on", label: "Accendi l'interruttore quando la stufa parte", hint: "Se la stufa si accende da sola, l'interruttore della stufa si allinea." },
+    { key: "sync_switch_off", label: "Spegni l'interruttore a stufa spenta", hint: "Dopo il periodo di grazia l'interruttore della stufa si spegne quando la stufa risulta spenta." },
+    { key: "show_switch_button", label: "Pulsante di accensione sulla scheda", hint: "Mostra il pulsante per accendere e spegnere la stufa con il suo interruttore." },
   ],
   notifiche: [
     { key: "notify_events", label: "Avvisa su accensione e spegnimento", hint: "" },
@@ -30,7 +30,7 @@ export class StufaSettingsDialog extends LitElement {
   @property({ attribute: false }) hass!: HomeAssistant;
   @property({ attribute: false }) info!: StufaInfo;
   @state() private _s!: StufaSettings;
-  @state() private _src!: { power_sensor: string; switch: string; energy_sensor: string };
+  @state() private _src!: { power_sensor: string; switch: string; plug: string; energy_sensor: string };
   @state() private _busy = false;
   @state() private _error = "";
   @state() private _msg = "";
@@ -46,6 +46,7 @@ export class StufaSettingsDialog extends LitElement {
     this._src = {
       power_sensor: this.info.sources.power_sensor ?? "",
       switch: this.info.sources.switch ?? "",
+      plug: this.info.sources.plug ?? "",
       energy_sensor: this.info.sources.energy_sensor ?? "",
     };
   }
@@ -130,7 +131,7 @@ export class StufaSettingsDialog extends LitElement {
     }
   }
 
-  private _entityRow(label: string, key: "power_sensor" | "switch" | "energy_sensor", domains: string[], required: boolean) {
+  private _entityRow(label: string, key: "power_sensor" | "switch" | "plug" | "energy_sensor", domains: string[], required: boolean) {
     const listId = `dl-${key}`;
     const options = Object.keys(this.hass.states).filter((id) => domains.includes(id.split(".")[0]));
     return html`
@@ -190,7 +191,8 @@ export class StufaSettingsDialog extends LitElement {
           <div class="body">
             <div class="sec">Sensori</div>
             ${this._entityRow("Sensore di potenza (W)", "power_sensor", ["sensor"], true)}
-            ${this._entityRow("Interruttore della presa", "switch", ["switch"], false)}
+            ${this._entityRow("Interruttore di accensione della stufa (per esempio lo Shelly)", "switch", ["switch", "input_boolean", "light"], false)}
+            ${this._entityRow("Interruttore della presa (solo stato)", "plug", ["switch", "input_boolean", "light"], false)}
             ${this._entityRow("Contatore di energia (kWh)", "energy_sensor", ["sensor"], false)}
 
             <div class="sec">Soglie di potenza</div>

@@ -13,7 +13,7 @@ from homeassistant.helpers.event import async_track_state_change_event, async_tr
 from homeassistant.helpers.storage import Store
 from homeassistant.util import dt as dt_util
 
-from .const import CONF_ENERGY, CONF_POWER, CONF_SWITCH, DOMAIN, SIGNAL_UPDATE, STORAGE_VERSION, TICK_SECONDS
+from .const import CONF_ENERGY, CONF_PLUG, CONF_POWER, CONF_SWITCH, DOMAIN, SIGNAL_UPDATE, STORAGE_VERSION, TICK_SECONDS
 from .schedule import Schedule, decide_mode
 from .logic import (
     RUNNING_STATES, STATE_IGNITION, STATE_OFF, STATE_SHUTDOWN, STATE_UNAVAILABLE, Blocker, DailyStats, Settings,
@@ -21,6 +21,11 @@ from .logic import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+
+
+def sources_of(data: Any) -> tuple[Any, Any, Any, Any]:
+    """Le entità collegate alla voce: potenza, interruttore della stufa, presa, energia (None se mancano)."""
+    return (data.get(CONF_POWER), data.get(CONF_SWITCH) or None, data.get(CONF_PLUG) or None, data.get(CONF_ENERGY) or None)
 
 
 def _parse_dt(value: Any) -> datetime | None:
@@ -51,7 +56,7 @@ class StufaController:
         self.timer_until: datetime | None = None
         self.last_action: dict[str, Any] | None = None
         self._last_sched_check: datetime | None = None
-        self.sources = (entry.data.get(CONF_POWER), entry.data.get(CONF_SWITCH) or None, entry.data.get(CONF_ENERGY) or None)
+        self.sources = sources_of(entry.data)
 
     # ------------------------------------------------------------------ ciclo di vita
     @property
@@ -60,7 +65,22 @@ class StufaController:
 
     @property
     def switch_entity(self) -> str | None:
+        """L'interruttore che accende e spegne la stufa (il programma, il timer e il pulsante agiscono su questo)."""
         return self.entry.data.get(CONF_SWITCH) or None
+
+    @property
+    def plug_entity(self) -> str | None:
+        """L'interruttore della presa che alimenta la stufa: se ne legge solo lo stato, non si comanda mai."""
+        return self.entry.data.get(CONF_PLUG) or None
+
+    @property
+    def plug_on(self) -> bool | None:
+        if not self.plug_entity:
+            return None
+        st = self.hass.states.get(self.plug_entity)
+        if st is None or st.state not in ("on", "off"):
+            return None
+        return st.state == "on"
 
     @property
     def energy_entity(self) -> str | None:
@@ -79,7 +99,7 @@ class StufaController:
         self.timer_until = _parse_dt(saved.get("timer_until"))
         self.last_action = saved.get("last_action") if isinstance(saved.get("last_action"), dict) else None
         self._last_sched_check = _parse_dt(saved.get("last_sched_check"))
-        entities = [e for e in (self.power_entity, self.switch_entity, self.energy_entity) if e]
+        entities = [e for e in (self.power_entity, self.switch_entity, self.plug_entity, self.energy_entity) if e]
         self._unsubs.append(async_track_state_change_event(self.hass, entities, self._on_event))
         self._unsubs.append(async_track_time_interval(self.hass, self._on_tick, timedelta(seconds=TICK_SECONDS)))
         self._evaluate(now, startup=True)
@@ -327,6 +347,7 @@ class StufaController:
             "sources": {
                 "power_sensor": self.power_entity,
                 "switch": self.switch_entity,
+                "plug": self.plug_entity,
                 "energy_sensor": self.energy_entity,
             },
             "settings": self.settings.to_dict(),

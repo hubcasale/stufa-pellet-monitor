@@ -104,6 +104,17 @@ test("summaryLines: casi principali", () => {
   assert.ok(start.some((l) => /allinea/.test(l.text)));
 });
 
+test("summaryLines: l'interruttore della stufa e la presa sono due cose diverse", () => {
+  const base = { power: 130, sinceMs: 0, switchOn: true, blocked: false, ignitionsToday: 1, hoursToday: 1, lastOn: null, lastOff: null, settings: S };
+  const noPlug = summaryLines({ ...base, state: "accesa" }, 1000);
+  assert.ok(noPlug.some((l) => /interruttore della stufa è acceso/.test(l.text)));
+  assert.ok(!noPlug.some((l) => /presa/i.test(l.text)));
+  const plugOn = summaryLines({ ...base, state: "accesa", plugOn: true }, 1000);
+  assert.ok(plugOn.some((l) => l.text === "La presa è accesa." && l.tone === "info"));
+  const plugOff = summaryLines({ ...base, state: "spenta", plugOn: false }, 1000);
+  assert.ok(plugOff.some((l) => /presa è spenta/.test(l.text) && l.tone === "warn"));
+});
+
 test("stoveSvg: ogni stato produce un SVG valido", () => {
   for (const st of ["spenta", "accensione", "accesa", "spegnimento", "non_disponibile"] as const) {
     for (const tile of ["rosso", "arancio", "avorio", "sconosciuto"]) {

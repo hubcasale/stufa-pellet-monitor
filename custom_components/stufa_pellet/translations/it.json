@@ -3,11 +3,12 @@
     "step": {
       "user": {
         "title": "Stufa a pellet",
-        "description": "Scegli la presa intelligente che misura la potenza della stufa. Soglie, tempi e notifiche si impostano dopo, dalle preferenze.",
+        "description": "Scegli il sensore di potenza della presa intelligente, l'interruttore che accende e spegne la stufa e, se vuoi, l'interruttore della presa (se ne mostra solo lo stato). Soglie, tempi e notifiche si impostano dopo, dalle preferenze.",
         "data": {
           "name": "Nome",
           "power_sensor": "Sensore di potenza (W)",
-          "switch": "Interruttore della presa (facoltativo)",
+          "switch": "Interruttore di accensione della stufa (facoltativo)",
+          "plug": "Interruttore della presa, solo stato (facoltativo)",
           "energy_sensor": "Sensore di energia (facoltativo)"
         }
       }
@@ -26,17 +27,17 @@
           "ignition_above": "Accensione da (W)",
           "shutdown_min": "Spegnimento da (W)",
           "shutdown_max": "Spegnimento fino a (W)",
-          "shutdown_needs_switch_off": "Riconosci lo spegnimento solo con l'interruttore spento",
+          "shutdown_needs_switch_off": "Riconosci lo spegnimento solo con l'interruttore della stufa spento",
           "confirm_seconds": "Conferma del cambio di stato dopo (s)",
-          "grace_seconds": "Periodo di grazia dopo l'accensione dell'interruttore (s)",
+          "grace_seconds": "Periodo di grazia dopo l'accensione dell'interruttore della stufa (s)",
           "restore_delay_seconds": "Ripristino dopo il ritorno del sensore (s)",
-          "sync_switch_on": "Accendi l'interruttore quando la stufa parte da sola",
-          "sync_switch_off": "Spegni l'interruttore quando la stufa è spenta",
+          "sync_switch_on": "Accendi l'interruttore della stufa quando parte da sola",
+          "sync_switch_off": "Spegni l'interruttore della stufa quando è spenta",
           "notify_events": "Avvisa a ogni accensione e spegnimento",
           "notify_sensor_problem": "Avvisa se il sensore non è disponibile",
           "notify_service": "Servizio di notifica (per esempio notify.telefono)",
           "tile_color": "Colore dei fianchi",
-          "show_switch_button": "Mostra il pulsante dell'interruttore sulla scheda"
+          "show_switch_button": "Mostra il pulsante di accensione sulla scheda"
         }
       }
     }

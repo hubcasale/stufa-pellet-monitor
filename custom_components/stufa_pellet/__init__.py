@@ -1,4 +1,6 @@
 """Stufa a pellet: stato, interruttore allineato, conteggi, scheda e preferenze, da una presa con misura di potenza."""
+# Entità collegate: sensore di potenza (obbligatorio), interruttore della stufa (per esempio lo Shelly sul contatto AUX,
+# comanda programma, timer e pulsante), interruttore della presa (solo stato) e contatore di energia.
 from __future__ import annotations
 
 import logging
@@ -16,8 +18,8 @@ from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import dt as dt_util
 
-from .const import CARD_FILE, CARD_URL, CONF_ENERGY, CONF_POWER, CONF_SWITCH, DOMAIN, PLATFORMS
-from .controller import StufaController
+from .const import CARD_FILE, CARD_URL, CONF_ENERGY, CONF_PLUG, CONF_POWER, CONF_SWITCH, DOMAIN, PLATFORMS
+from .controller import StufaController, sources_of
 from .logic import Settings, suggest_thresholds, valid_power
 from .schedule import Schedule
 
@@ -69,8 +71,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 async def _async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Preferenze cambiate: si applicano subito; se cambiano i sensori si ricarica la voce."""
     controller: StufaController | None = hass.data[DOMAIN].get(entry.entry_id)
-    sources_now = (entry.data.get(CONF_POWER), entry.data.get(CONF_SWITCH) or None, entry.data.get(CONF_ENERGY) or None)
-    if controller is None or sources_now != controller.sources:
+    if controller is None or sources_of(entry.data) != controller.sources:
         await hass.config_entries.async_reload(entry.entry_id)
         return
     controller.update_settings(Settings.from_dict(entry.options))
@@ -142,7 +143,7 @@ async def ws_update(hass: HomeAssistant, connection: websocket_api.ActiveConnect
         if CONF_POWER in src and not src[CONF_POWER]:
             connection.send_error(msg["id"], "invalid", "Il sensore di potenza è obbligatorio")
             return
-        for key in (CONF_POWER, CONF_SWITCH, CONF_ENERGY):
+        for key in (CONF_POWER, CONF_SWITCH, CONF_PLUG, CONF_ENERGY):
             if key in src:
                 if src[key]:
                     new[key] = src[key]

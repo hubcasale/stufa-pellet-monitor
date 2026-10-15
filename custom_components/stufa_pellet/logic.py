@@ -1,6 +1,7 @@
 """Logica pura della stufa a pellet: nessuna dipendenza da Home Assistant, si prova con pytest.
 
-La stufa si osserva dalla potenza di una presa intelligente. Gli stati sono:
+La stufa si osserva dalla potenza di una presa intelligente; si accende e si spegne con un interruttore a parte
+(per esempio uno Shelly sul contatto AUX della scheda). Gli stati sono:
   spenta         potenza sotto la soglia "spenta"
   accensione     potenza oltre la soglia di accensione (resistenza dell'accenditore)
   accesa         potenza fra le due soglie (funzionamento normale)
@@ -165,7 +166,7 @@ def decide_switch_action(
     blocked: bool,
     s: Settings,
 ) -> str | None:
-    """Azione sull'interruttore della presa: "turn_on", "turn_off" oppure None.
+    """Azione sull'interruttore della stufa: "turn_on", "turn_off" oppure None.
 
     - Interruttore spento ma la stufa si sta accendendo (potenza oltre la soglia): lo accende, cosi' resta allineato.
     - Interruttore acceso ma la potenza e' sotto la soglia "spenta": lo spegne, solo dopo il periodo di grazia

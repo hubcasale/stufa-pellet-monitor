@@ -272,7 +272,10 @@ export interface SummaryInput {
   state: StufaState;
   power: number | null;
   sinceMs: number | null;
+  /** interruttore che accende e spegne la stufa */
   switchOn: boolean | null;
+  /** interruttore della presa che alimenta la stufa (solo stato); non presente se non configurato */
+  plugOn?: boolean | null;
   blocked: boolean;
   ignitionsToday: number | null;
   hoursToday: number | null;
@@ -310,17 +313,20 @@ export function summaryLines(i: SummaryInput, nowMs: number): SummaryLine[] {
   if (i.blocked) {
     lines.push({
       icon: "mdi:shield-lock",
-      text: `Azioni automatiche sulla presa bloccate: riprendono ${s.restore_delay_seconds} secondi dopo il ritorno del sensore.`,
+      text: `Azioni automatiche sull'interruttore bloccate: riprendono ${s.restore_delay_seconds} secondi dopo il ritorno del sensore.`,
       tone: "warn",
     });
   }
   if (i.switchOn !== null) {
-    lines.push({ icon: "mdi:power-plug", text: `L'interruttore della presa è ${i.switchOn ? "acceso" : "spento"}.`, tone: "info" });
+    lines.push({ icon: "mdi:toggle-switch", text: `L'interruttore della stufa è ${i.switchOn ? "acceso" : "spento"}.`, tone: "info" });
     if (i.switchOn && i.state === "spenta" && !i.blocked)
       lines.push({ icon: "mdi:timer-sand", text: `Interruttore acceso con la stufa spenta: si spegne dopo il periodo di grazia (${s.grace_seconds} s).`, tone: "info" });
     if (!i.switchOn && i.state === "accensione")
       lines.push({ icon: "mdi:sync", text: "La stufa è partita da sola: l'interruttore si accende per restare allineato.", tone: "info" });
   }
+  if (i.plugOn === false)
+    lines.push({ icon: "mdi:power-plug-off", text: "La presa è spenta: la stufa non è alimentata.", tone: "warn" });
+  else if (i.plugOn === true) lines.push({ icon: "mdi:power-plug", text: "La presa è accesa.", tone: "info" });
   if (i.ignitionsToday !== null && i.hoursToday !== null) {
     lines.push({
       icon: "mdi:calendar-today",
@@ -351,8 +357,8 @@ export const THRESHOLD_FIELDS: NumberField[] = [
 
 export const BEHAVIOUR_FIELDS: NumberField[] = [
   { key: "confirm_seconds", label: "Conferma del cambio di stato", hint: "Un nuovo stato deve durare tanti secondi prima di essere accettato (filtra i picchi).", unit: "s", min: 0, max: 600, step: 1 },
-  { key: "grace_seconds", label: "Periodo di grazia della presa", hint: "Dopo aver acceso la presa si aspetta tanti secondi prima di spegnerla se la stufa risulta spenta.", unit: "s", min: 0, max: 600, step: 1 },
-  { key: "restore_delay_seconds", label: "Ripresa dopo guasto del sensore", hint: "Dopo il ritorno del sensore le azioni sulla presa restano bloccate per tanti secondi.", unit: "s", min: 0, max: 900, step: 1 },
+  { key: "grace_seconds", label: "Periodo di grazia dell'interruttore", hint: "Dopo aver acceso l'interruttore della stufa si aspetta tanti secondi prima di spegnerlo se la stufa risulta spenta.", unit: "s", min: 0, max: 600, step: 1 },
+  { key: "restore_delay_seconds", label: "Ripresa dopo guasto del sensore", hint: "Dopo il ritorno del sensore le azioni sull'interruttore restano bloccate per tanti secondi.", unit: "s", min: 0, max: 900, step: 1 },
 ];
 
 /** Errori che impediscono di salvare le soglie (lista vuota = valide). */

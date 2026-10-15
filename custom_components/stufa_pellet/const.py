@@ -6,7 +6,8 @@ PLATFORMS = [Platform.SENSOR, Platform.BINARY_SENSOR, Platform.SWITCH]
 
 CONF_NAME = "name"
 CONF_POWER = "power_sensor"
-CONF_SWITCH = "switch"
+CONF_SWITCH = "switch"      # interruttore che accende e spegne la stufa (per esempio lo Shelly sul contatto della scheda)
+CONF_PLUG = "plug"          # interruttore della presa che alimenta la stufa: se ne mostra solo lo stato
 CONF_ENERGY = "energy_sensor"
 
 STORAGE_VERSION = 1

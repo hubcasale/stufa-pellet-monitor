@@ -9,7 +9,7 @@ from homeassistant.config_entries import ConfigFlow, ConfigFlowResult, OptionsFl
 from homeassistant.core import callback
 from homeassistant.helpers import selector
 
-from .const import CONF_ENERGY, CONF_NAME, CONF_POWER, CONF_SWITCH, DOMAIN
+from .const import CONF_ENERGY, CONF_NAME, CONF_PLUG, CONF_POWER, CONF_SWITCH, DOMAIN
 from .logic import TILE_COLORS, Settings
 
 
@@ -26,6 +26,9 @@ def source_schema(with_name: bool = False) -> vol.Schema:
         fields[vol.Required(CONF_NAME, default="Stufa a pellet")] = str
     fields[vol.Required(CONF_POWER)] = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="power"))
     fields[vol.Optional(CONF_SWITCH)] = selector.EntitySelector(
+        selector.EntitySelectorConfig(domain=["switch", "input_boolean", "light"])
+    )
+    fields[vol.Optional(CONF_PLUG)] = selector.EntitySelector(
         selector.EntitySelectorConfig(domain=["switch", "input_boolean", "light"])
     )
     fields[vol.Optional(CONF_ENERGY)] = selector.EntitySelector(selector.EntitySelectorConfig(domain="sensor", device_class="energy"))

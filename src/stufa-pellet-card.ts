@@ -141,6 +141,7 @@ export class StufaPelletCard extends LitElement {
     const power = toNumber(a.potenza) ?? toNumber(this.hass.states[info.sources.power_sensor]?.state);
     const sinceRaw = (a.da as string | null) ?? info.since;
     const swState = info.sources.switch ? this.hass.states[info.sources.switch]?.state : undefined;
+    const plugState = info.sources.plug ? this.hass.states[info.sources.plug]?.state : undefined;
     const num = (k: string) => (ent[k] ? toNumber(this.hass.states[ent[k]]?.state) : null);
     const mo = ent.modo ? this.hass.states[ent.modo] : undefined;
     const ma = (mo?.attributes ?? {}) as Record<string, unknown>;
@@ -157,6 +158,7 @@ export class StufaPelletCard extends LitElement {
       power,
       sinceMs: sinceRaw ? Date.parse(sinceRaw) : null,
       switchOn: swState === "on" ? true : swState === "off" ? false : null,
+      plugOn: plugState === "on" ? true : plugState === "off" ? false : null,
       blocked: a.azioni_bloccate === true,
       ignitions: num("accensioni_oggi"),
       hours: num("ore_in_funzione_oggi"),
@@ -216,7 +218,8 @@ export class StufaPelletCard extends LitElement {
               <div class="tiles">
                 ${this._tile("mdi:fire-circle", "Accensioni oggi", lv.ignitions !== null ? fmt(lv.ignitions) : "–")}
                 ${this._tile("mdi:clock-outline", "In funzione oggi", lv.hours !== null ? `${fmt(lv.hours, 1)} h` : "–")}
-                ${this._tile("mdi:power-plug", "Presa", lv.switchOn === null ? "–" : lv.switchOn ? "Accesa" : "Spenta", lv.blocked ? "azioni bloccate" : "")}
+                ${info.sources.switch ? this._tile("mdi:toggle-switch", "Interruttore", lv.switchOn === null ? "–" : lv.switchOn ? "Acceso" : "Spento", lv.blocked ? "azioni bloccate" : "") : nothing}
+                ${info.sources.plug ? this._tile(lv.plugOn === false ? "mdi:power-plug-off" : "mdi:power-plug", "Presa", lv.plugOn === null ? "–" : lv.plugOn ? "Accesa" : "Spenta") : nothing}
                 ${lv.energy !== null ? this._tile("mdi:lightning-bolt", "Energia oggi", `${fmt(lv.energy, 2)} kWh`) : nothing}
               </div>
             </div>
@@ -238,7 +241,7 @@ export class StufaPelletCard extends LitElement {
                 <button class="btn" @click=${() => void this._open("stufa-timer-dialog")}><ha-icon icon="mdi:timer-outline"></ha-icon>Timer</button>`
               : nothing}
             ${s.show_switch_button && info.sources.switch
-              ? html`<button class=${lv.switchOn ? "btn plug on" : "btn plug"} @click=${() => this._toggleSwitch()} aria-pressed=${lv.switchOn ? "true" : "false"}><ha-icon icon="mdi:power-plug"></ha-icon>${lv.switchOn ? "Presa accesa" : "Presa spenta"}</button>`
+              ? html`<button class=${lv.switchOn ? "btn plug on" : "btn plug"} title="Tocca per accendere o spegnere la stufa" @click=${() => this._toggleSwitch()} aria-pressed=${lv.switchOn ? "true" : "false"}><ha-icon icon="mdi:power"></ha-icon>${lv.switchOn ? "Interruttore acceso" : "Interruttore spento"}</button>`
               : nothing}
             <span class="grow"></span>
             <button class="btn icon" aria-label="Preferenze" @click=${() => void this._open("stufa-settings-dialog")}><ha-icon icon="mdi:cog"></ha-icon></button>
@@ -325,4 +328,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c STUFA-PELLET-MONITOR %c v0.2.0 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
+console.info("%c STUFA-PELLET-MONITOR %c v0.3.0 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");

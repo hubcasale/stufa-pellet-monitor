@@ -10,28 +10,28 @@ Nasce per sostituire un pacchetto YAML (`packages/stufa_pellet.yaml`) con qualco
 |---|---|
 | **Spenta** | potenza sotto la soglia (predefinita 5 W) |
 | **Accensione** | potenza oltre la soglia dell'accenditore (predefinita 250 W) |
-| **Spegnimento** | potenza nella fascia della ventola in raffreddamento (predefinita 126–129 W) e, se attivo, interruttore della presa spento |
+| **Spegnimento** | potenza nella fascia della ventola in raffreddamento (predefinita 126–129 W) e, se attivo, interruttore della stufa spento |
 | **In funzione** | tutto il resto |
 | **Non disponibile** | il sensore di potenza non risponde |
 
-Un nuovo stato deve durare qualche secondo (conferma) prima di essere accettato, così i picchi non fanno rimbalzare lo stato. Quando il sensore torna dopo un guasto, le azioni sulla presa restano bloccate per qualche secondo.
+Un nuovo stato deve durare qualche secondo (conferma) prima di essere accettato, così i picchi non fanno rimbalzare lo stato. Quando il sensore torna dopo un guasto, le azioni sull'interruttore della stufa restano bloccate per qualche secondo.
 
 ## Che cosa crea
 
 Un dispositivo "Stufa a pellet" con:
 
-- `sensor.stufa_a_pellet_stato` (spenta / accensione / accesa / spegnimento / non_disponibile) con attributi `potenza`, `da`, `durata`, `interruttore`, `azioni_bloccate`
+- `sensor.stufa_a_pellet_stato` (spenta / accensione / accesa / spegnimento / non_disponibile) con attributi `potenza`, `da`, `durata`, `interruttore` (quello della stufa), `presa` (solo se indichi l'interruttore della presa), `azioni_bloccate`
 - accensioni di oggi, ore in funzione di oggi, ultima accensione, ultimo spegnimento
 - energia di oggi (kWh), solo se indichi un contatore di energia
 - `binary_sensor` in funzione e azioni bloccate (diagnostica)
 
-Con l'interruttore configurato aggiunge anche:
+Con l'interruttore della stufa configurato aggiunge anche:
 
 - `sensor.stufa_a_pellet_modo` (programma / manuale / fuori_programma / timer) con gli attributi `prossima_azione`, `prossimo_evento`, `timer_fino` e `ultima_azione`
 - `sensor.stufa_a_pellet_prossimo_evento` (data e ora della prossima accensione o del prossimo spegnimento)
 - `switch.stufa_a_pellet_programmazione` per attivare o disattivare la programmazione dalle automazioni
 
-Facoltativamente tiene allineata la presa: la accende se la stufa parte da sola e la spegne dopo un periodo di grazia quando la stufa è spenta. Può avvisare con una notifica di Home Assistant o con un servizio `notify.*` a tua scelta.
+Facoltativamente tiene allineato l'interruttore della stufa: lo accende se la stufa parte da sola e lo spegne dopo un periodo di grazia quando la stufa è spenta. La presa non viene mai comandata: se la indichi se ne mostra soltanto lo stato (accesa o spenta). Può avvisare con una notifica di Home Assistant o con un servizio `notify.*` a tua scelta.
 
 ## Installazione
 
@@ -42,8 +42,9 @@ Facoltativamente tiene allineata la presa: la accende se la stufa parte da sola 
 Poi *Impostazioni → Dispositivi e servizi → Aggiungi integrazione → Stufa a pellet* e scegli:
 
 1. il **sensore di potenza** (obbligatorio, in W);
-2. l'**interruttore** della presa (facoltativo);
-3. il **contatore di energia** (facoltativo, kWh).
+2. l'**interruttore di accensione della stufa** (facoltativo): quello che la accende e la spegne, per esempio lo Shelly sul contatto AUX della scheda; programma, timer e pulsante agiscono su questo;
+3. l'**interruttore della presa** (facoltativo): quella che alimenta la stufa e misura la potenza; se ne mostra solo lo stato, non viene mai comandata;
+4. il **contatore di energia** (facoltativo, kWh).
 
 ## La scheda
 
@@ -62,7 +63,7 @@ Pulsanti della scheda:
 - **Grafici**: potenza della presa con le linee delle soglie e le fasce dello stato (6 ore, 24 ore, 3 e 7 giorni); passa sopra per leggere i valori.
 - **Programma**: programmazione settimanale con **più fasce al giorno**: per ogni fascia scegli i giorni, l'ora di accensione e quella di spegnimento (se lo spegnimento è prima dell'accensione la fascia finisce il giorno dopo). Sopra le fasce c'è la vista dell'intera settimana. Le fasce che si sovrappongono si uniscono.
 - **Timer**: accende subito e spegne dopo 30 minuti, 1, 2, 3, 4, 6 ore o un tempo a scelta; durante il timer le fasce non intervengono.
-- **Presa**: accende e spegne l'interruttore (si può nascondere dalle preferenze).
+- **Interruttore acceso/spento**: accende e spegne la stufa con il suo interruttore (si può nascondere dalle preferenze). Il riquadro **Presa** mostra solo se la presa è accesa o spenta.
 - **Ingranaggio, Preferenze**: sensori, soglie, comportamento, notifiche e colore delle ceramiche (rosso, arancio, avorio). Il pulsante *Suggerisci le soglie dallo storico* le ricava dagli ultimi 14 giorni della potenza. Le preferenze sono le stesse del menu *Configura* dell'integrazione.
 
 ## Programma, timer e modalità
@@ -80,7 +81,7 @@ Dopo un riavvio di Home Assistant si recupera al massimo l'ultimo cambio degli u
 
 ## Migrare da `stufa_pellet.yaml`
 
-1. Installa l'integrazione e configurala con gli stessi sensori (nel vecchio pacchetto: `sensor.presa_stufa_pellet_power` e `switch.stufa_pellet`).
+1. Installa l'integrazione e configurala con gli stessi sensori (nel vecchio pacchetto: `sensor.presa_stufa_pellet_power` per la potenza, `switch.stufa_pellet` per l'interruttore di accensione, cioè lo Shelly, e l'interruttore della presa come presa, solo stato).
 2. Se le soglie del pacchetto erano diverse dalle predefinite, impostale dalle preferenze.
 3. Sostituisci nelle dashboard il vecchio testo `input_text.stato_stufa_pellet` con `sensor.stufa_a_pellet_stato` (i valori sono `spenta`, `accensione`, `accesa`, `spegnimento`, `non_disponibile`: se una dashboard o un'automazione confronta il testo, controlla che coincida).
 4. Controlla per qualche giorno che stato e notifiche si comportino come prima.
