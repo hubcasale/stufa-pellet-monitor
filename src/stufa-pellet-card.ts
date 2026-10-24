@@ -16,6 +16,8 @@ interface CardConfig {
   type: string;
   title?: string;
   entry_id?: string;
+  /** versione compatta (per stare accanto ad altre schede della stessa altezza): riquadri in una riga, immagine piu' piccola, pulsanti piu' stretti */
+  compact?: boolean;
 }
 
 /** Scheda della stufa a pellet: illustrazione, stato, barra della potenza con le soglie, riquadri, cronologia 24 ore e pulsanti. */
@@ -186,9 +188,10 @@ export class StufaPelletCard extends LitElement {
     const t0 = this._now - TIMELINE_MS;
     const pct = (t: number) => Math.min(100, Math.max(0, ((t - t0) / TIMELINE_MS) * 100));
 
+    const compact = this._config.compact === true;
     return html`
       <ha-card>
-        <div class="pad">
+        <div class=${compact ? "pad compact" : "pad"}>
           <div class="top">
             <div class="title">${title}</div>
             <div class="pill ${tone}"><i></i>${STATE_LABEL[lv.state]}${since && lv.state !== "non_disponibile" ? html`<span class="since"> · da ${since}</span>` : nothing}</div>
@@ -216,11 +219,11 @@ export class StufaPelletCard extends LitElement {
                 <div class="ticks">${gauge.ticks.map((t) => html`<span style="left:${t.at}%">${t.label}</span>`)}</div>
               </div>
               <div class="tiles">
-                ${this._tile("mdi:fire-circle", "Accensioni oggi", lv.ignitions !== null ? fmt(lv.ignitions) : "–")}
-                ${this._tile("mdi:clock-outline", "In funzione oggi", lv.hours !== null ? `${fmt(lv.hours, 1)} h` : "–")}
+                ${this._tile("mdi:fire-circle", compact ? "Accensioni" : "Accensioni oggi", lv.ignitions !== null ? fmt(lv.ignitions) : "–")}
+                ${this._tile("mdi:clock-outline", compact ? "In funzione" : "In funzione oggi", lv.hours !== null ? `${fmt(lv.hours, 1)} h` : "–")}
                 ${info.sources.switch ? this._tile("mdi:toggle-switch", "Interruttore", lv.switchOn === null ? "–" : lv.switchOn ? "Acceso" : "Spento", lv.blocked ? "azioni bloccate" : "") : nothing}
                 ${info.sources.plug ? this._tile(lv.plugOn === false ? "mdi:power-plug-off" : "mdi:power-plug", "Presa", lv.plugOn === null ? "–" : lv.plugOn ? "Accesa" : "Spenta") : nothing}
-                ${lv.energy !== null ? this._tile("mdi:lightning-bolt", "Energia oggi", `${fmt(lv.energy, 2)} kWh`) : nothing}
+                ${lv.energy !== null ? this._tile("mdi:lightning-bolt", compact ? "Energia" : "Energia oggi", `${fmt(lv.energy, 2)} kWh`) : nothing}
               </div>
             </div>
           </div>
@@ -241,7 +244,7 @@ export class StufaPelletCard extends LitElement {
                 <button class="btn" @click=${() => void this._open("stufa-timer-dialog")}><ha-icon icon="mdi:timer-outline"></ha-icon>Timer</button>`
               : nothing}
             ${s.show_switch_button && info.sources.switch
-              ? html`<button class=${lv.switchOn ? "btn plug on" : "btn plug"} title="Tocca per accendere o spegnere la stufa" @click=${() => this._toggleSwitch()} aria-pressed=${lv.switchOn ? "true" : "false"}><ha-icon icon="mdi:power"></ha-icon>${lv.switchOn ? "Interruttore acceso" : "Interruttore spento"}</button>`
+              ? html`<button class=${lv.switchOn ? "btn plug on" : "btn plug"} title="Tocca per accendere o spegnere la stufa" @click=${() => this._toggleSwitch()} aria-pressed=${lv.switchOn ? "true" : "false"}><ha-icon icon="mdi:power"></ha-icon>${compact ? (lv.switchOn ? "Acceso" : "Spento") : lv.switchOn ? "Interruttore acceso" : "Interruttore spento"}</button>`
               : nothing}
             <span class="grow"></span>
             <button class="btn icon" aria-label="Preferenze" @click=${() => void this._open("stufa-settings-dialog")}><ha-icon icon="mdi:cog"></ha-icon></button>
@@ -304,6 +307,29 @@ export class StufaPelletCard extends LitElement {
     .btn ha-icon { --mdc-icon-size: 18px; }
     .btn.plug.on { background: rgba(22, 163, 74, 0.16); border-color: #16a34a; color: #166534; }
     .btn.icon { padding: 8px 10px; }
+    /* versione compatta: stessa informazione in poco piu' di meta' altezza */
+    .pad.compact { padding: 8px 12px 10px; }
+    .compact .top { margin-bottom: 4px; }
+    .compact .title { font-size: 1rem; }
+    .compact .pill { padding: 3px 10px; font-size: 0.78rem; }
+    .compact .mode { padding: 4px 10px; margin-bottom: 6px; font-size: 0.8rem; }
+    .compact .main { gap: 10px; }
+    .compact .stove { flex: 0 0 24%; max-width: 110px; min-width: 76px; align-self: center; }
+    .compact .side { gap: 6px; }
+    .compact .big { font-size: 1.9rem; }
+    .compact .muted { font-size: 0.72rem; }
+    .compact .gauge { padding-bottom: 14px; }
+    .compact .tiles { grid-template-columns: repeat(3, 1fr); gap: 5px; }
+    .compact .tile { padding: 4px 6px; border-radius: 10px; min-width: 0; }
+    .compact .tile ha-icon { display: none; }
+    .compact .tile .v { font-size: 1rem; margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .compact .tile .l { font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .compact .tile .s { display: none; }
+    .compact .tl { margin-top: 8px; }
+    .compact .tlbar { height: 12px; }
+    .compact .actions { margin-top: 8px; gap: 6px; }
+    .compact .btn { padding: 5px 9px; font-size: 0.8rem; border-radius: 10px; }
+    .compact .btn ha-icon { --mdc-icon-size: 16px; }
     @media (max-width: 420px) {
       .main { flex-direction: column; align-items: center; }
       .stove { flex: none; width: 52%; }
@@ -328,4 +354,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c STUFA-PELLET-MONITOR %c v0.3.0 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
+console.info("%c STUFA-PELLET-MONITOR %c v0.3.1 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");

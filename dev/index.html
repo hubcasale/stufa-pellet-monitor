@@ -56,7 +56,7 @@ function mk(state, i) {
   return hass;
 }
 const root = document.getElementById("root");
-states.forEach((s, i) => { const el = document.createElement("stufa-pellet-card"); el.setConfig({type:"custom:stufa-pellet-card"}); el.hass = mk(s, i); root.appendChild(el); });
+states.forEach((s, i) => { const el = document.createElement("stufa-pellet-card"); el.setConfig({type:"custom:stufa-pellet-card", compact: params.get("compact")==="1"}); el.hass = mk(s, i); root.appendChild(el); });
 const op = params.get('open'); if (op) setTimeout(()=>root.children[0]._open(op), 600);
 window.__open = (idx, tag) => { const c = root.children[idx]; c._open(tag); };
 </script></body></html>
