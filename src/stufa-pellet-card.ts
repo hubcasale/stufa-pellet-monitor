@@ -35,6 +35,7 @@ export class StufaPelletCard extends LitElement {
 
   setConfig(config: CardConfig): void {
     this._config = { ...config };
+    this.toggleAttribute("compact", config.compact === true);
     this._info = null;
     this._loadedAt = 0;
   }
@@ -190,7 +191,7 @@ export class StufaPelletCard extends LitElement {
 
     const compact = this._config.compact === true;
     return html`
-      <ha-card>
+      <ha-card class=${compact ? "compact-host" : ""}>
         <div class=${compact ? "pad compact" : "pad"}>
           <div class="top">
             <div class="title">${title}</div>
@@ -308,7 +309,10 @@ export class StufaPelletCard extends LitElement {
     .btn.plug.on { background: rgba(22, 163, 74, 0.16); border-color: #16a34a; color: #166534; }
     .btn.icon { padding: 8px 10px; }
     /* versione compatta: stessa informazione in poco piu' di meta' altezza */
-    .pad.compact { padding: 8px 12px 10px; }
+    /* se la scheda ha un'altezza imposta (accanto a schede piu' alte) le sezioni si distribuiscono su tutta l'altezza */
+    :host([compact]) { height: 100%; }
+    ha-card.compact-host { height: 100%; }
+    .pad.compact { padding: 8px 12px 10px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
     .compact .top { margin-bottom: 4px; }
     .compact .title { font-size: 1rem; }
     .compact .pill { padding: 3px 10px; font-size: 0.78rem; }
@@ -354,4 +358,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c STUFA-PELLET-MONITOR %c v0.3.1 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
+console.info("%c STUFA-PELLET-MONITOR %c v0.3.2 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
