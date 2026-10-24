@@ -312,28 +312,29 @@ export class StufaPelletCard extends LitElement {
     /* se la scheda ha un'altezza imposta (accanto a schede piu' alte) le sezioni si distribuiscono su tutta l'altezza */
     :host([compact]) { height: 100%; }
     ha-card.compact-host { height: 100%; }
-    .pad.compact { padding: 8px 12px 10px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
+    .pad.compact { padding: 10px 14px 12px; height: 100%; box-sizing: border-box; display: flex; flex-direction: column; justify-content: space-between; }
     .compact .top { margin-bottom: 4px; }
-    .compact .title { font-size: 1rem; }
-    .compact .pill { padding: 3px 10px; font-size: 0.78rem; }
-    .compact .mode { padding: 4px 10px; margin-bottom: 6px; font-size: 0.8rem; }
+    .compact .title { font-size: 1.1rem; }
+    .compact .pill { padding: 4px 12px; font-size: 0.84rem; }
+    .compact .mode { padding: 6px 12px; margin-bottom: 6px; font-size: 0.88rem; }
     .compact .main { gap: 10px; }
-    .compact .stove { flex: 0 0 24%; max-width: 110px; min-width: 76px; align-self: center; }
-    .compact .side { gap: 6px; }
-    .compact .big { font-size: 1.9rem; }
-    .compact .muted { font-size: 0.72rem; }
-    .compact .gauge { padding-bottom: 14px; }
-    .compact .tiles { grid-template-columns: repeat(3, 1fr); gap: 5px; }
-    .compact .tile { padding: 4px 6px; border-radius: 10px; min-width: 0; }
+    .compact .stove { flex: 0 0 26%; max-width: 124px; min-width: 84px; align-self: center; }
+    .compact .side { gap: 8px; }
+    .compact .big { font-size: 2.3rem; }
+    .compact .muted { font-size: 0.78rem; }
+    .compact .gauge { padding-bottom: 16px; }
+    .compact .tiles { grid-template-columns: repeat(3, 1fr); gap: 6px; }
+    .compact .tile { padding: 5px 6px; border-radius: 10px; min-width: 0; }
     .compact .tile ha-icon { display: none; }
-    .compact .tile .v { font-size: 1rem; margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .compact .tile .v { font-size: 1.05rem; margin-top: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .compact .tile .l { font-size: 0.68rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .compact .tile .s { display: none; }
     .compact .tl { margin-top: 8px; }
-    .compact .tlbar { height: 12px; }
-    .compact .actions { margin-top: 8px; gap: 6px; }
-    .compact .btn { padding: 5px 9px; font-size: 0.8rem; border-radius: 10px; }
-    .compact .btn ha-icon { --mdc-icon-size: 16px; }
+    .compact .tlh { font-size: 0.86rem; }
+    .compact .tlbar { height: 16px; }
+    .compact .actions { margin-top: 8px; gap: 8px; }
+    .compact .btn { padding: 8px 12px; font-size: 0.88rem; border-radius: 12px; }
+    .compact .btn ha-icon { --mdc-icon-size: 18px; }
     @media (max-width: 420px) {
       .main { flex-direction: column; align-items: center; }
       .stove { flex: none; width: 52%; }
@@ -358,4 +359,4 @@ window.customCards.push({
 });
 
 // eslint-disable-next-line no-console
-console.info("%c STUFA-PELLET-MONITOR %c v0.3.2 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
+console.info("%c STUFA-PELLET-MONITOR %c v0.3.3 ", "color: white; background: #8b2a22; font-weight: 700;", "color: #8b2a22; background: white; font-weight: 700;");
