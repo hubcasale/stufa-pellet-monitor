@@ -1,3 +1,5 @@
+> **Archiviato.** Questa integrazione è confluita in [impianto-riscaldamento](https://github.com/hubcasale/impianto-riscaldamento), che raccoglie stufa a pellet e termostato in un'unica integrazione con migrazione automatica. Questo repository non riceverà più aggiornamenti.
+
 # Stufa a pellet monitor
 
 Integrazione per Home Assistant che dice **in che stato è la stufa a pellet** guardando solo la potenza assorbita da una presa smart (consumo in watt), con una **scheda Lovelace** ispirata alla scheda del boiler: illustrazione della stufa (Edilkamin Iris), stato, barra della potenza con le soglie, cronologia delle ultime 24 ore, grafici e preferenze configurabili dalla scheda stessa.
